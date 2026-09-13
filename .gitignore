@@ -1,0 +1,35 @@
+# Environment variables (Never commit secret API keys)
+.env
+.env.local
+.env.*.local
+
+# Python cache & compiled bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# SQLite Database files (Local demo data)
+*.db
+*.sqlite
+*.sqlite3
+loan_checker.db
+instance/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace

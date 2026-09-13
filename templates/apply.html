@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Loan Eligibility Application - AI Loan Checker{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="page-header mb-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+                <span class="badge-edu mb-2 inline-block"><i class="fa-solid fa-file-invoice"></i> Interactive Application</span>
+                <h1 class="text-3xl font-bold text-slate-900">Loan Eligibility Assessment</h1>
+                <p class="text-slate-600 text-sm">Provide your financial information to run the 100-point underwriting model and generate Gemini AI advice.</p>
+            </div>
+            
+            <!-- Quick Demo Loaders for College Presentation / Viva -->
+            <div class="demo-profiles-group">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                    <i class="fa-solid fa-flask"></i> Quick Demo Profiles:
+                </span>
+                <div class="btn-group-sm">
+                    <button type="button" class="btn btn-outline btn-xs" onclick="loadSampleProfile('prime')">
+                        <i class="fa-solid fa-user-check text-emerald-500"></i> Prime Profile
+                    </button>
+                    <button type="button" class="btn btn-outline btn-xs" onclick="loadSampleProfile('moderate')">
+                        <i class="fa-solid fa-user-clock text-amber-500"></i> Borderline Profile
+                    </button>
+                    <button type="button" class="btn btn-outline btn-xs" onclick="loadSampleProfile('high_risk')">
+                        <i class="fa-solid fa-user-xmark text-red-500"></i> High Risk Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="application-layout-grid">
+        <!-- Main Form Card -->
+        <div class="form-card-wrapper">
+            <form action="{{ url_for('apply') }}" method="POST" id="loanApplicationForm" class="form-card card p-4 md:p-5">
+                
+                <!-- Section 1: Personal & Employment Details -->
+                <div class="form-section mb-4">
+                    <div class="section-title-wrap mb-3">
+                        <span class="section-number">1</span>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg">Personal & Employment Profile</h3>
+                            <p class="text-xs text-slate-500">Basic applicant demographics and career information.</p>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <!-- Applicant Name -->
+                        <div class="form-group flex-1">
+                            <label for="applicant_name" class="form-label">
+                                Full Name <span class="text-slate-400 font-normal">(for report)</span>
+                            </label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-solid fa-user input-icon"></i>
+                                <input type="text" id="applicant_name" name="applicant_name" class="form-control" 
+                                       placeholder="e.g. Rahul Sharma" 
+                                       value="{{ form_data.get('applicant_name', '') }}" required>
+                            </div>
+                        </div>
+
+                        <!-- Age -->
+                        <div class="form-group w-full md:w-48">
+                            <label for="age" class="form-label">
+                                Age (Years) <span class="text-red-500">*</span>
+                            </label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-solid fa-cake-candles input-icon"></i>
+                                <input type="number" id="age" name="age" class="form-control" 
+                                       min="18" max="100" placeholder="e.g. 28" 
+                                       value="{{ form_data.get('age', '28') }}" required>
+                            </div>
+                            <span class="field-hint">Eligible range: 18 - 70 years</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row mt-3">
+                        <!-- Employment Type -->
+                        <div class="form-group flex-1">
+                            <label for="employment_type" class="form-label">
+                                Employment Category <span class="text-red-500">*</span>
+                            </label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-solid fa-briefcase input-icon"></i>
+                                <select id="employment_type" name="employment_type" class="form-control" required>
+                                    <option value="Salaried" {% if form_data.get('employment_type') == 'Salaried' %}selected{% endif %}>Salaried (Corporate / Govt)</option>
+                                    <option value="Business Owner" {% if form_data.get('employment_type') == 'Business Owner' %}selected{% endif %}>Business Owner / Enterprise</option>
+                                    <option value="Self-Employed" {% if form_data.get('employment_type') == 'Self-Employed' %}selected{% endif %}>Self-Employed Professional (Doctor, CA, etc.)</option>
+                                    <option value="Freelancer" {% if form_data.get('employment_type') == 'Freelancer' %}selected{% endif %}>Freelancer / Contractual</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Work Experience -->
+                        <div class="form-group w-full md:w-56">
+                            <label for="employment_experience" class="form-label">
+                                Experience (Years) <span class="text-red-500">*</span>
+                            </label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-solid fa-business-time input-icon"></i>
+                                <input type="number" step="0.5" id="employment_experience" name="employment_experience" 
+                                       class="form-control" min="0" max="60" placeholder="e.g. 4.5" 
+                                       value="{{ form_data.get('employment_experience', '4.0') }}" required>
+                            </div>
+                            <span class="field-hint">&ge; 3 yrs receives maximum stability score</span>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="section-divider my-4">
+
+                <!-- Section 2: Financial Standing & Credit History -->
+                <div class="form-section mb-4">
+                    <div class="section-title-wrap mb-3">
+                        <span class="section-number">2</span>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg">Financial Position & Credit Rating</h3>
+                            <p class="text-xs text-slate-500">Income, existing debt obligations, and repayment history.</p>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <!-- Monthly Income -->
+                        <div class="form-group flex-1">
+                            <label for="monthly_income" class="form-label">
+                                Monthly Net Income (₹) <span class="text-red-500">*</span>
+                            </label>
+                            <div class="input-icon-wrapper">
+                                <span class="input-prefix">₹</span>
+                                <input type="number" step="500" id="monthly_income" name="monthly_income" 
+                                       class="form-control pl-8" min="5000" placeholder="e.g. 75000" 
+                                       value="{{ form_data.get('monthly_income', '75000') }}" required>
+                            </div>
+                            <span class="field-hint">Take-home salary or net business surplus</span>
+                        </div>
+
+                        <!-- Existing EMI -->
+                        <div class="form-group flex-1">
+                            <label for="existing_emi" class="form-label">
+                                Existing Monthly EMI (₹) <span class="text-red-500">*</span>
+                            </label>
+                            <div class="input-icon-wrapper">
+                                <span class="input-prefix">₹</span>
+                                <input type="number" step="500" id="existing_emi" name="existing_emi" 
+                                       class="form-control pl-8" min="0" placeholder="e.g. 10000" 
+                                       value="{{ form_data.get('existing_emi', '8000') }}" required>
+                            </div>
+                            <span class="field-hint">Car loans, personal loans, or cards (0 if none)</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row mt-3">
+                        <!-- Credit Score (Slider + Input) -->
+                        <div class="form-group w-full">
+                            <div class="flex justify-between items-center mb-1">
+                                <label for="credit_score" class="form-label mb-0">
+                                    Credit Score (CIBIL / FICO) <span class="text-red-500">*</span>
+                                </label>
+                                <span id="creditScoreBadge" class="badge badge-success font-bold text-sm">760 - Excellent</span>
+                            </div>
+
+                            <div class="slider-container">
+                                <input type="range" id="credit_score_range" min="300" max="900" step="5" value="760" class="custom-range-slider">
+                                <div class="flex justify-between text-xs text-slate-400 mt-1">
+                                    <span>300 (Poor)</span>
+                                    <span>550 (Fair)</span>
+                                    <span>650 (Good)</span>
+                                    <span>750 (Prime)</span>
+                                    <span>900 (Excellent)</span>
+                                </div>
+                            </div>
+
+                            <div class="input-icon-wrapper mt-2 max-w-xs">
+                                <i class="fa-solid fa-gauge-high input-icon"></i>
+                                <input type="number" id="credit_score" name="credit_score" class="form-control" 
+                                       min="300" max="900" placeholder="e.g. 760" 
+                                       value="{{ form_data.get('credit_score', '760') }}" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="section-divider my-4">
+
+                <!-- Section 3: Loan Request Requirements -->
+                <div class="form-section mb-4">
+                    <div class="section-title-wrap mb-3">
+                        <span class="section-number">3</span>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg">Requested Loan Facility</h3>
+                            <p class="text-xs text-slate-500">Loan sizing and preferred repayment tenure.</p>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <!-- Required Loan Amount -->
+                        <div class="form-group flex-1">
+                            <label for="required_loan_amount" class="form-label">
+                                Required Loan Amount (₹) <span class="text-red-500">*</span>
+                            </label>
+                            <div class="input-icon-wrapper">
+                                <span class="input-prefix">₹</span>
+                                <input type="number" step="10000" id="required_loan_amount" name="required_loan_amount" 
+                                       class="form-control pl-8" min="10000" placeholder="e.g. 600000" 
+                                       value="{{ form_data.get('required_loan_amount', '600000') }}" required>
+                            </div>
+                            <span class="field-hint">Desired principal financing amount</span>
+                        </div>
+
+                        <!-- Loan Tenure -->
+                        <div class="form-group w-full md:w-56">
+                            <label for="loan_tenure_years" class="form-label">
+                                Tenure (Years) <span class="text-red-500">*</span>
+                            </label>
+                            <div class="input-icon-wrapper">
+                                <i class="fa-solid fa-calendar-days input-icon"></i>
+                                <select id="loan_tenure_years" name="loan_tenure_years" class="form-control" required>
+                                    <option value="1" {% if form_data.get('loan_tenure_years') == '1' %}selected{% endif %}>1 Year (12 months)</option>
+                                    <option value="2" {% if form_data.get('loan_tenure_years') == '2' %}selected{% endif %}>2 Years (24 months)</option>
+                                    <option value="3" {% if form_data.get('loan_tenure_years') == '3' %}selected{% endif %}>3 Years (36 months)</option>
+                                    <option value="5" {% if not form_data.get('loan_tenure_years') or form_data.get('loan_tenure_years') == '5' %}selected{% endif %}>5 Years (60 months) - Standard</option>
+                                    <option value="7" {% if form_data.get('loan_tenure_years') == '7' %}selected{% endif %}>7 Years (84 months)</option>
+                                    <option value="10" {% if form_data.get('loan_tenure_years') == '10' %}selected{% endif %}>10 Years (120 months)</option>
+                                    <option value="15" {% if form_data.get('loan_tenure_years') == '15' %}selected{% endif %}>15 Years (180 months)</option>
+                                    <option value="20" {% if form_data.get('loan_tenure_years') == '20' %}selected{% endif %}>20 Years (240 months)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Action Buttons -->
+                <div class="form-actions mt-4 pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p class="text-xs text-slate-500 text-center sm:text-left">
+                        <i class="fa-solid fa-shield-check text-emerald-500"></i> Evaluated securely on-premise with SQLite storage.
+                    </p>
+                    <button type="submit" id="submitBtn" class="btn btn-primary btn-lg w-full sm:w-auto pulse-glow">
+                        <i class="fa-solid fa-bolt"></i> Evaluate Loan Eligibility
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Real-Time Dynamic Estimator Sidebar -->
+        <div class="estimator-sidebar">
+            <div class="card p-4 sticky-sidebar glassmorphism">
+                <div class="sidebar-header mb-3 pb-2 border-b border-slate-200 flex items-center justify-between">
+                    <h4 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                        <i class="fa-solid fa-calculator text-indigo-600"></i> Live Calculation Preview
+                    </h4>
+                    <span class="badge badge-info text-xs">Dynamic</span>
+                </div>
+
+                <!-- Estimated EMI Box -->
+                <div class="live-metric-box mb-3">
+                    <span class="text-xs text-slate-500">Estimated New Monthly EMI</span>
+                    <div class="text-2xl font-black text-indigo-900" id="previewEmi">₹12,891.00</div>
+                    <span class="text-[11px] text-slate-400">@ 10.5% p.a. standard benchmark</span>
+                </div>
+
+                <!-- Total Monthly Commitment -->
+                <div class="live-metric-box mb-3">
+                    <span class="text-xs text-slate-500">Total Monthly Debt Obligation</span>
+                    <div class="text-lg font-bold text-slate-800" id="previewTotalObligation">₹20,891.00</div>
+                    <span class="text-[11px] text-slate-400">Existing EMI + New Estimated EMI</span>
+                </div>
+
+                <!-- Live FOIR Gauge -->
+                <div class="live-metric-box mb-3">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs text-slate-500">Debt-to-Income (FOIR)</span>
+                        <span class="font-bold text-xs" id="previewFoirText">27.9%</span>
+                    </div>
+                    <div class="progress-bar-wrap">
+                        <div class="progress-bar-fill bg-emerald-500" id="previewFoirBar" style="width: 28%;"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                        <span>0% Safe</span>
+                        <span>40% Limit</span>
+                        <span>60%+ Risky</span>
+                    </div>
+                    <p class="text-[11px] mt-1.5 font-medium" id="previewFoirVerdict">
+                        <span class="text-emerald-600"><i class="fa-solid fa-circle-check"></i> Healthy Disposable Buffer</span>
+                    </p>
+                </div>
+
+                <!-- Live Loan-to-Income Multiple -->
+                <div class="live-metric-box mb-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-slate-500">Loan / Annual Salary Ratio</span>
+                        <span class="font-bold text-xs text-slate-700" id="previewLti">0.7x</span>
+                    </div>
+                </div>
+
+                <!-- Educational Notice inside Sidebar -->
+                <div class="sidebar-tip-box bg-slate-100 p-2.5 rounded text-xs text-slate-600">
+                    <i class="fa-solid fa-lightbulb text-amber-500"></i>
+                    <strong>Viva Tip:</strong> Bankers prefer total FOIR below 45%. If FOIR exceeds 50%, the model flags debt strain.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

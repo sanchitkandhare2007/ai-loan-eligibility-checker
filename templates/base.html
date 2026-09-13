@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Loan Eligibility Checker - College Demo Project{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen font-sans">
+
+    <!-- Top Educational Banner -->
+    <div class="top-disclaimer-banner">
+        <div class="container banner-inner">
+            <span class="badge-edu"><i class="fa-solid fa-graduation-cap"></i> College Demo Project</span>
+            <span class="disclaimer-text">
+                <i class="fa-solid fa-triangle-exclamation"></i> 
+                <strong>Disclaimer:</strong> This application provides an educational eligibility estimate only. It does not guarantee loan approval.
+            </span>
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="{{ url_for('index') }}" class="brand-logo">
+                <div class="logo-icon-wrap">
+                    <i class="fa-solid fa-shield-halved logo-icon"></i>
+                    <i class="fa-solid fa-bolt logo-sparkle"></i>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-title">LoanAI<span class="brand-accent">Check</span></span>
+                    <span class="brand-sub">AI Eligibility Intelligence</span>
+                </div>
+            </a>
+
+            <!-- Desktop Navigation -->
+            <nav class="desktop-nav">
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                    <i class="fa-solid fa-house"></i> Home
+                </a>
+                <a href="{{ url_for('apply') }}" class="nav-link {% if request.endpoint == 'apply' %}active{% endif %}">
+                    <i class="fa-solid fa-file-signature"></i> Apply Now
+                </a>
+                <a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint == 'history' %}active{% endif %}">
+                    <i class="fa-solid fa-clock-rotate-left"></i> History
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-pie"></i> Dashboard
+                </a>
+            </nav>
+
+            <div class="header-cta">
+                <a href="{{ url_for('apply') }}" class="btn btn-primary btn-sm pulse-glow">
+                    <i class="fa-solid fa-calculator"></i> Check Eligibility
+                </a>
+                <!-- Mobile Menu Button -->
+                <button class="mobile-toggle-btn" id="mobileMenuBtn" aria-label="Toggle Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Drawer Menu -->
+        <div class="mobile-drawer" id="mobileDrawer">
+            <a href="{{ url_for('index') }}" class="mobile-nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                <i class="fa-solid fa-house"></i> Home
+            </a>
+            <a href="{{ url_for('apply') }}" class="mobile-nav-link {% if request.endpoint == 'apply' %}active{% endif %}">
+                <i class="fa-solid fa-file-signature"></i> Check Eligibility Form
+            </a>
+            <a href="{{ url_for('history') }}" class="mobile-nav-link {% if request.endpoint == 'history' %}active{% endif %}">
+                <i class="fa-solid fa-clock-rotate-left"></i> Application History
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="mobile-nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                <i class="fa-solid fa-chart-pie"></i> Statistics Dashboard
+            </a>
+        </div>
+    </header>
+
+    <!-- Flash Messages Container -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages-list">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <div class="alert-icon">
+                                {% if category == 'success' %}
+                                    <i class="fa-solid fa-circle-check"></i>
+                                {% elif category == 'error' %}
+                                    <i class="fa-solid fa-circle-exclamation"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-circle-info"></i>
+                                {% endif %}
+                            </div>
+                            <div class="alert-content">{{ message }}</div>
+                            <button class="alert-close" onclick="this.parentElement.remove();">&times;</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-content flex-grow">
+        {% block content %}
+            {% if error_title %}
+            <section class="container text-center py-5">
+                <div class="card p-5 max-w-lg mx-auto">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500 text-5xl mb-3"></i>
+                    <h2 class="text-2xl font-bold mb-2">{{ error_title }}</h2>
+                    <p class="text-slate-600 mb-4">{{ error_message }}</p>
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">Return Home</a>
+                </div>
+            </section>
+            {% endif %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer mt-auto">
+        <div class="container footer-inner">
+            <div class="footer-grid">
+                <div class="footer-col brand-col">
+                    <div class="brand-logo footer-logo">
+                        <div class="logo-icon-wrap">
+                            <i class="fa-solid fa-shield-halved logo-icon"></i>
+                        </div>
+                        <span class="brand-title">LoanAI<span class="brand-accent">Check</span></span>
+                    </div>
+                    <p class="footer-desc">
+                        A university-level AI financial evaluation engine demonstrating machine-assisted credit risk analysis and explainable AI powered by Google Gemini.
+                    </p>
+                    <div class="tech-tags">
+                        <span class="tag">Python Flask</span>
+                        <span class="tag">SQLite</span>
+                        <span class="tag">Gemini API</span>
+                        <span class="tag">Vanilla JS</span>
+                    </div>
+                </div>
+
+                <div class="footer-col">
+                    <h4 class="footer-heading">Navigation</h4>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('index') }}"><i class="fa-solid fa-angle-right"></i> Home Overview</a></li>
+                        <li><a href="{{ url_for('apply') }}"><i class="fa-solid fa-angle-right"></i> Assessment Form</a></li>
+                        <li><a href="{{ url_for('history') }}"><i class="fa-solid fa-angle-right"></i> Audit History</a></li>
+                        <li><a href="{{ url_for('dashboard') }}"><i class="fa-solid fa-angle-right"></i> Analytics Dashboard</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4 class="footer-heading">Viva Scoring Metrics</h4>
+                    <ul class="footer-links text-sm">
+                        <li><span class="metric-bullet">•</span> FOIR (Debt-to-Income): 35%</li>
+                        <li><span class="metric-bullet">•</span> Credit Score (CIBIL): 30%</li>
+                        <li><span class="metric-bullet">•</span> Loan Multiplier (LTI): 15%</li>
+                        <li><span class="metric-bullet">•</span> Employment Tenure: 10%</li>
+                        <li><span class="metric-bullet">•</span> Age Demographics: 10%</li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4 class="footer-heading">Project Disclaimer</h4>
+                    <div class="disclaimer-box">
+                        <p class="text-xs text-slate-500 leading-relaxed">
+                            "This application provides an educational eligibility estimate only. It does not guarantee loan approval."
+                        </p>
+                        <p class="text-xs text-slate-400 mt-2">
+                            Designed for academic demonstration & evaluation viva.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <div class="footer-copy">
+                    &copy; {{ 2025 }} AI Loan Eligibility Checker. Built for College Academic Evaluation.
+                </div>
+                <div class="footer-status">
+                    <span class="status-indicator online"></span>
+                    <span class="text-xs text-slate-400">Heuristic + Gemini AI Ready</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Core Scripts -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

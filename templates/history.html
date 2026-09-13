@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Application Audit History - AI Loan Checker{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    
+    <div class="page-header mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+            <span class="badge-edu mb-2 inline-block"><i class="fa-solid fa-database"></i> SQLite Audit Log</span>
+            <h1 class="text-3xl font-bold text-slate-900">Application History</h1>
+            <p class="text-slate-600 text-sm">Review past loan evaluations, scores, and Gemini AI explanations.</p>
+        </div>
+        <div>
+            <a href="{{ url_for('apply') }}" class="btn btn-primary">
+                <i class="fa-solid fa-plus"></i> New Assessment
+            </a>
+        </div>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="card p-3 mb-4 filter-card">
+        <form action="{{ url_for('history') }}" method="GET" class="flex flex-col sm:flex-row gap-2 items-center">
+            <div class="input-icon-wrapper flex-1 w-full">
+                <i class="fa-solid fa-magnifying-glass input-icon"></i>
+                <input type="text" name="q" value="{{ current_query }}" class="form-control text-sm" placeholder="Search applicant name or ID...">
+            </div>
+
+            <div class="w-full sm:w-48">
+                <select name="status" class="form-control text-sm" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    <option value="Eligible" {% if current_status == 'Eligible' %}selected{% endif %}>Eligible</option>
+                    <option value="Needs Review" {% if current_status == 'Needs Review' %}selected{% endif %}>Needs Review</option>
+                    <option value="Not Eligible" {% if current_status == 'Not Eligible' %}selected{% endif %}>Not Eligible</option>
+                </select>
+            </div>
+
+            <div class="flex gap-2 w-full sm:w-auto">
+                <button type="submit" class="btn btn-secondary btn-sm w-full sm:w-auto">
+                    <i class="fa-solid fa-filter"></i> Filter
+                </button>
+                {% if current_query or current_status %}
+                    <a href="{{ url_for('history') }}" class="btn btn-outline btn-sm" title="Clear Filters">
+                        <i class="fa-solid fa-xmark"></i> Clear
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Applications Table -->
+    <div class="card overflow-hidden">
+        {% if applications %}
+            <div class="table-responsive">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>App ID</th>
+                            <th>Applicant</th>
+                            <th>Requested Loan</th>
+                            <th>Income / Mo</th>
+                            <th>Credit Score</th>
+                            <th>FOIR</th>
+                            <th>Score</th>
+                            <th>Verdict</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for app in applications %}
+                            <tr>
+                                <td class="font-mono text-xs font-bold text-indigo-700">
+                                    #APP-{{ "%04d"|format(app.id) }}
+                                </td>
+                                <td>
+                                    <div class="font-semibold text-slate-900">{{ app.applicant_name }}</div>
+                                    <div class="text-[11px] text-slate-400">{{ app.employment_type }} &bull; {{ app.age }} yrs</div>
+                                </td>
+                                <td class="font-semibold text-slate-800">
+                                    ₹{{ app.required_loan_amount | currency }}
+                                </td>
+                                <td class="text-slate-600">
+                                    ₹{{ app.monthly_income | currency }}
+                                </td>
+                                <td>
+                                    <span class="font-bold {% if app.credit_score >= 750 %}text-emerald-600{% elif app.credit_score >= 650 %}text-amber-600{% else %}text-red-600{% endif %}">
+                                        {{ app.credit_score }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded {% if app.foir_percentage <= 45 %}bg-emerald-50 text-emerald-700{% elif app.foir_percentage <= 60 %}bg-amber-50 text-amber-700{% else %}bg-red-50 text-red-700{% endif %}">
+                                        {{ app.foir_percentage }}%
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="flex items-center gap-1.5 font-bold">
+                                        <div class="mini-score-dot {% if app.status == 'Eligible' %}bg-emerald-500{% elif app.status == 'Needs Review' %}bg-amber-500{% else %}bg-red-500{% endif %}"></div>
+                                        <span>{{ app.eligibility_score }}/100</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if app.status == 'Eligible' %}
+                                        <span class="badge badge-success">Eligible</span>
+                                    {% elif app.status == 'Needs Review' %}
+                                        <span class="badge badge-warning">Needs Review</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">Not Eligible</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-right whitespace-nowrap">
+                                    <div class="flex items-center justify-end gap-1.5">
+                                        <a href="{{ url_for('result', app_id=app.id) }}" class="btn btn-outline btn-xs" title="View Detailed Report">
+                                            <i class="fa-solid fa-eye"></i> View
+                                        </a>
+                                        <form action="{{ url_for('delete_record', app_id=app.id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete application #APP-{{ app.id }}?');">
+                                            <button type="submit" class="btn btn-outline btn-xs text-red-600 hover:bg-red-50" title="Delete Record">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="p-5 text-center empty-state">
+                <i class="fa-solid fa-folder-open text-slate-300 text-5xl mb-3"></i>
+                <h3 class="text-lg font-bold text-slate-700">No Application Records Found</h3>
+                <p class="text-slate-500 text-sm max-w-sm mx-auto mb-4">
+                    {% if current_query or current_status %}
+                        No results match your search or filter criteria. Try resetting the filters.
+                    {% else %}
+                        No loan assessments have been submitted yet. Test your first application to generate records!
+                    {% endif %}
+                </p>
+                {% if current_query or current_status %}
+                    <a href="{{ url_for('history') }}" class="btn btn-secondary btn-sm">Clear Filters</a>
+                {% else %}
+                    <a href="{{ url_for('apply') }}" class="btn btn-primary btn-sm">Start First Assessment</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

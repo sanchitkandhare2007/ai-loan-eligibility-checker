@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Loan Eligibility Result - {{ app.applicant_name }} (#{{ app.id }}){% endblock %}
+
+{% block content %}
+<div class="container py-5 print-container">
+    
+    <!-- Action Bar & Breadcrumb -->
+    <div class="result-top-bar flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 no-print">
+        <div class="breadcrumb flex items-center gap-2 text-sm text-slate-500">
+            <a href="{{ url_for('index') }}" class="hover:text-indigo-600"><i class="fa-solid fa-house"></i> Home</a>
+            <span>/</span>
+            <a href="{{ url_for('history') }}" class="hover:text-indigo-600">History</a>
+            <span>/</span>
+            <span class="text-slate-800 font-medium">Application #{{ app.id }}</span>
+        </div>
+
+        <div class="result-actions flex items-center gap-2">
+            <button onclick="window.print()" class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-print"></i> Print / Save PDF
+            </button>
+            <a href="{{ url_for('apply') }}" class="btn btn-primary btn-sm">
+                <i class="fa-solid fa-plus"></i> New Assessment
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Results Card -->
+    <div class="result-main-card card p-5 md:p-6 mb-4">
+        
+        <!-- Header: Applicant Info + Status Badge -->
+        <div class="result-header-row flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-200 gap-4">
+            <div class="applicant-meta">
+                <span class="text-xs font-bold uppercase tracking-wider text-indigo-600">Assessment Report #APP-{{ "%04d"|format(app.id) }}</span>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 mt-1">{{ app.applicant_name }}</h1>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    <i class="fa-regular fa-clock"></i> Generated on {{ app.created_at }} &bull; Employment: {{ app.employment_type }} ({{ app.employment_experience }} yrs)
+                </p>
+            </div>
+
+            <div class="status-verdict-wrap">
+                {% if app.status == 'Eligible' %}
+                    <div class="status-badge-lg status-eligible">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <div>
+                            <div class="text-xs uppercase tracking-wider font-semibold opacity-80">Final Verdict</div>
+                            <div class="text-xl font-black">ELIGIBLE</div>
+                        </div>
+                    </div>
+                {% elif app.status == 'Needs Review' %}
+                    <div class="status-badge-lg status-review">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <div>
+                            <div class="text-xs uppercase tracking-wider font-semibold opacity-80">Final Verdict</div>
+                            <div class="text-xl font-black">NEEDS REVIEW</div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="status-badge-lg status-not-eligible">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                        <div>
+                            <div class="text-xs uppercase tracking-wider font-semibold opacity-80">Final Verdict</div>
+                            <div class="text-xl font-black">NOT ELIGIBLE</div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Score Meter & Key Financial Ratio Cards -->
+        <div class="result-metrics-grid mt-5">
+            <!-- Score Visual Meter -->
+            <div class="metric-card score-meter-card text-center p-4">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">Overall Eligibility Score</span>
+                
+                <div class="gauge-wrapper relative mx-auto my-2">
+                    <svg class="score-radial-svg" viewBox="0 0 160 160">
+                        <circle class="score-circle-bg" cx="80" cy="80" r="70"></circle>
+                        <circle class="score-circle-bar {% if app.status == 'Eligible' %}bar-green{% elif app.status == 'Needs Review' %}bar-amber{% else %}bar-red{% endif %}" 
+                                cx="80" cy="80" r="70" 
+                                style="stroke-dashoffset: calc(440 - (440 * {{ app.eligibility_score }}) / 100);">
+                        </circle>
+                    </svg>
+                    <div class="gauge-center-content">
+                        <span class="gauge-number">{{ app.eligibility_score }}</span>
+                        <span class="gauge-denom">/ 100</span>
+                    </div>
+                </div>
+
+                <div class="score-status-label font-bold text-sm {% if app.status == 'Eligible' %}text-emerald-600{% elif app.status == 'Needs Review' %}text-amber-600{% else %}text-red-600{% endif %}">
+                    {% if app.status == 'Eligible' %}
+                        High Pre-Approval Probability
+                    {% elif app.status == 'Needs Review' %}
+                        Moderate Risk Profile
+                    {% else %}
+                        Underwriting Threshold Not Met
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Financial Metrics Table -->
+            <div class="metric-card p-4 flex flex-col justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-3">Underwriting Financial Indicators</span>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="data-point-box">
+                        <span class="data-label">Monthly Income</span>
+                        <span class="data-val">₹{{ app.monthly_income | currency }}</span>
+                    </div>
+                    <div class="data-point-box">
+                        <span class="data-label">Existing Monthly EMI</span>
+                        <span class="data-val">₹{{ app.existing_emi | currency }}</span>
+                    </div>
+                    <div class="data-point-box">
+                        <span class="data-label">Requested Loan Amount</span>
+                        <span class="data-val text-indigo-700 font-bold">₹{{ app.required_loan_amount | currency }}</span>
+                    </div>
+                    <div class="data-point-box">
+                        <span class="data-label">Estimated New EMI</span>
+                        <span class="data-val text-indigo-700 font-bold">₹{{ app.estimated_emi | currency }}/mo</span>
+                    </div>
+                    <div class="data-point-box">
+                        <span class="data-label">Credit Score</span>
+                        <span class="data-val {% if app.credit_score >= 750 %}text-emerald-600{% elif app.credit_score >= 650 %}text-amber-600{% else %}text-red-600{% endif %}">
+                            {{ app.credit_score }}
+                        </span>
+                    </div>
+                    <div class="data-point-box">
+                        <span class="data-label">FOIR (Debt-to-Income)</span>
+                        <span class="data-val {% if app.foir_percentage <= 45 %}text-emerald-600{% elif app.foir_percentage <= 60 %}text-amber-600{% else %}text-red-600{% endif %}">
+                            {{ app.foir_percentage }}%
+                        </span>
+                    </div>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-2">
+                    <i class="fa-solid fa-info-circle"></i> Estimated at 10.5% interest rate over {{ app.loan_tenure_years }} years.
+                </div>
+            </div>
+        </div>
+
+        <!-- Factors Breakdown Grid -->
+        <div class="factors-grid grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+            <!-- Positive Factors -->
+            <div class="factor-card factor-card-pos card p-4">
+                <div class="factor-header mb-3 flex items-center gap-2 text-emerald-700 font-bold text-sm pb-2 border-b border-emerald-100">
+                    <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                    <span>Positive Eligibility Factors ({{ app.positive_factors|length }})</span>
+                </div>
+                {% if app.positive_factors %}
+                    <ul class="factors-list space-y-2 text-sm text-slate-700">
+                        {% for factor in app.positive_factors %}
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-emerald-500 mt-1 flex-shrink-0"></i>
+                                <span>{{ factor }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-sm text-slate-400 italic">No strong positive factors identified in this profile.</p>
+                {% endif %}
+            </div>
+
+            <!-- Negative / Risk Factors -->
+            <div class="factor-card factor-card-neg card p-4">
+                <div class="factor-header mb-3 flex items-center gap-2 text-amber-700 font-bold text-sm pb-2 border-b border-amber-100">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+                    <span>Factors That May Reduce Eligibility ({{ app.negative_factors|length }})</span>
+                </div>
+                {% if app.negative_factors %}
+                    <ul class="factors-list space-y-2 text-sm text-slate-700">
+                        {% for factor in app.negative_factors %}
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-circle-exclamation text-amber-500 mt-1 flex-shrink-0"></i>
+                                <span>{{ factor }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-sm text-emerald-600 flex items-center gap-1.5 font-medium">
+                        <i class="fa-solid fa-shield-check"></i> No critical underwriting risk factors detected!
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Google Gemini AI Financial Advisor Section -->
+        <div class="ai-advisor-section card mt-5 p-5 bg-gradient-to-br from-indigo-50/70 via-white to-purple-50/70 border-indigo-200">
+            <div class="ai-advisor-header flex items-center justify-between pb-3 border-b border-indigo-100 mb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="ai-header-badge">
+                        <i class="fa-solid fa-sparkles text-indigo-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-indigo-950 text-base">Gemini AI Financial Advisor Analysis</h3>
+                        <p class="text-xs text-slate-500">Natural language interpretation & borrower guidance</p>
+                    </div>
+                </div>
+                <span class="badge badge-indigo text-xs">
+                    <i class="fa-solid fa-microchip"></i> Explainable AI
+                </span>
+            </div>
+
+            <div class="ai-explanation-content prose max-w-none text-slate-800 text-sm leading-relaxed">
+                {{ app.ai_explanation | simple_markdown | safe }}
+            </div>
+        </div>
+
+        <!-- Bottom Academic Disclaimer -->
+        <div class="mt-5 p-3 rounded-lg bg-amber-50/80 border border-amber-200 flex items-center gap-3 text-xs text-amber-800">
+            <i class="fa-solid fa-graduation-cap text-amber-600 text-lg flex-shrink-0"></i>
+            <div>
+                <strong>Academic Viva Note:</strong>
+                "This application provides an educational eligibility estimate only. It does not guarantee loan approval."
+                Evaluation performed using demo FOIR equations, CIBIL tiers, and generative intelligence.
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Actions -->
+    <div class="flex justify-between items-center no-print">
+        <a href="{{ url_for('history') }}" class="btn btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i> Back to History
+        </a>
+        <a href="{{ url_for('apply') }}" class="btn btn-primary">
+            <i class="fa-solid fa-redo"></i> Test Another Applicant
+        </a>
+    </div>
+
+</div>
+{% endblock %}
